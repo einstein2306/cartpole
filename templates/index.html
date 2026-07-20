@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link href="/static/bootstrap.min.css" rel="stylesheet">
+    <script src="/static/bootstrap.bundle.min.js"></script>
+    <link rel="stylesheet" href="/static/usermode.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>cartpole</title>
+    <style>
+        .heading{
+            font-size:27px;
+            font-weight: 800;
+        }
+    </style>
+</head>
+<body>
+    <div class="container ">
+        <div class="row">
+            <p class="text-center bg-dark text-white mb-0 heading">CartPole User Mode</p>
+        </div>
+<!--
+
+        <div class="row align-items-center mb-3">
+            <div class="col-12 col-sm-6">
+                <div class="d-flex gap-2 flex-wrap">
+                    <button class="btn btn-primary" id="startBtn" onclick="startGame()">Start</button>
+                    <button class="btn btn-danger" id="stopBtn" onclick="stopGame()" style="display: none;">Stop</button>
+                </div>
+            </div>
+            <div class="col-12 col-sm-6 text-sm-center">
+                <div class="score">Score: <span id="score">0</span></div>
+            </div>
+        </div>
+-->
+        <div class="row mt-4">
+            <div class="col-md-6 mx-auto">
+                <table class="table table-sm table-bordered shadow shadow-sm text-center">
+                    <thead class="table-dark">
+                        <th scope="col">Controllers</th>
+                        <th scope="col">Score</th>
+                        <th scope="col">Link</th>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="d-flex justify-content-center gap-1">
+                                <button class="btn btn-sm btn-primary" id="startBtn" onclick="startGame()">start</button>
+                                <button class="btn btn-sm btn-danger" id="stopBtn" onclick="stopGame()" style="display: none;">stop</button>
+                            </td>
+                            <td><span id="score">0</span></td>
+                            <td><button class="btn btn-link"><a href="/ai"><em>AiMode</em></a></button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="row mt-1">
+            <div class="col-12 d-flex justify-content-center">
+                <div class="game-container">
+                    <div id="cart-container">
+                        <div class="cart">
+                            <div class="pivot-point"></div>
+                            <div class="pole" id="pole"></div>
+                        </div>
+                    </div>
+                    <div class="ground"></div>
+                    <div class="game-over" id="gameOver">
+                        Game Over!
+                        <br>
+                        <button class="reset-btn" onclick="resetGame()">Play Again</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12">
+                <div class="controls">
+                    <button class="control-btn" id="leftBtn" onclick="moveCart('left')" disabled>
+                        ← Left
+                    </button>
+                    <button class="control-btn" id="rightBtn" onclick="moveCart('right')" disabled>
+                        Right →
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+     <script>
+
+            let cartPosition = 400;
+            let score = 0;
+            let poleAngle = 0;
+            let poleVelocity = 0;
+            let isGameOver = false;
+            let isGameRunning = false;
+            let gameWidth = 450;
+            const cartHalfWidth = 40;
+            const cartContainer = document.getElementById('cart-container');
+            const scoreElement = document.getElementById('score');
+            const pole = document.getElementById('pole');
+            const gameOverElement = document.getElementById('gameOver');
+            const leftBtn = document.getElementById('leftBtn');
+            const rightBtn = document.getElementById('rightBtn');
+            const startBtn = document.getElementById('startBtn');
+            const stopBtn = document.getElementById('stopBtn');
+    
+            function updatePole() {
+                if (isGameOver || !isGameRunning) return;
+    
+                const gravity = 0.10;
+                const damping = 0.995;
+                const randomForce = (Math.random() - 0.5) * 0.05;
+    
+                poleVelocity += (gravity * Math.sin(poleAngle * Math.PI / 180)) + randomForce;
+                poleVelocity *= damping;
+                poleAngle += poleVelocity;
+    
+                const isPoleFallen = Math.abs(poleAngle) > 90;
+                const isCartOutOfBounds = cartPosition <= cartHalfWidth || cartPosition >= gameWidth - cartHalfWidth;
+
+                if (isPoleFallen || (isCartOutOfBounds && Math.abs(poleAngle) > 20)) {
+                    gameOver();
+                    return;
+                }
+    
+                pole.style.transform = `rotate(${poleAngle}deg)`;
+                requestAnimationFrame(updatePole);
+            }
+    
+            function moveCart(direction) {
+                if (isGameOver || !isGameRunning) return;
+    
+                const moveAmount = direction === 'left' ? -20 : 20;
+                const nextPosition = cartPosition + moveAmount;
+                const maxPosition = gameWidth - cartHalfWidth;
+                const minPosition = cartHalfWidth;
+
+                if (nextPosition < minPosition || nextPosition > maxPosition) {
+                    if (Math.abs(poleAngle) > 20) {
+                        gameOver();
+                        return;
+                    }
+                    cartPosition = Math.min(maxPosition, Math.max(minPosition, nextPosition));
+                    cartContainer.style.left = cartPosition + 'px';
+                    return;
+                }
+    
+                cartPosition = nextPosition;
+                cartContainer.style.left = cartPosition + 'px';
+    
+                // Add force to pole in opposite direction
+                poleVelocity += direction === 'left' ? 0.4 : -0.4;
+    
+                score += 1;
+                scoreElement.textContent = score;
+            }
+    
+            function gameOver() {
+                isGameOver = true;
+                isGameRunning = false;
+                gameOverElement.style.display = 'block';
+                leftBtn.disabled = true;
+                rightBtn.disabled = true;
+                stopBtn.style.display = 'none';
+            }
+    
+            function resetGame() {
+                isGameOver = false;
+                cartPosition = gameWidth / 2;
+                poleAngle = 0;
+                poleVelocity = 0;
+                score = 0;
+    
+                cartContainer.style.left = cartPosition + 'px';
+                pole.style.transform = 'rotate(0deg)';
+                gameOverElement.style.display = 'none';
+                scoreElement.textContent = '0';
+                leftBtn.disabled = false;
+                rightBtn.disabled = false;
+    
+                // Automatically start the game after resetting
+                isGameRunning = true;
+                stopBtn.style.display = 'block';
+                updatePole();
+            }
+    
+            function startGame() {
+                isGameRunning = true;
+                startBtn.style.display = 'none';
+                stopBtn.style.display = 'block';
+                leftBtn.disabled = false;
+                rightBtn.disabled = false;
+                cartPosition = gameWidth / 2;
+                cartContainer.style.left = cartPosition + 'px';
+                updatePole();
+            }
+    
+            function stopGame() {
+                isGameRunning = false;
+                stopBtn.style.display = 'none';
+                startBtn.style.display = 'block';
+                leftBtn.disabled = true;
+                rightBtn.disabled = true;
+            }
+    
+            // Add keyboard controls
+            document.addEventListener('keydown', (e) => {
+                if (isGameOver || !isGameRunning) return;
+                if (e.key === 'ArrowLeft') moveCart('left');
+                if (e.key === 'ArrowRight') moveCart('right');
+            });
+
+    </script>
+    
+</body>
+</html>
