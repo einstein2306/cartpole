@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, render_template
-from model import CartpoleModel
+#from model import CartpoleModel
+from onnx_model import load_model
 
 app = Flask(__name__)
 
@@ -15,7 +16,8 @@ def ai_mode():
 def fetch_data():
 
     # Triggering function to fetch the data...
-    gif_data, total_frames = CartpoleModel()
+    #gif_data, total_frames = CartpoleModel()
+    gif_data, total_frames = load_model()
     if gif_data is not None:
         return jsonify({
             "success":True,
